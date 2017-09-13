@@ -2,7 +2,6 @@ node {
   def branchVersion = ""
 
   try {
-    buildNotify 'STARTED', 'my-build-channel'
     
     stage ('Checkout') {
       // checkout repository
@@ -55,6 +54,5 @@ node {
     currentBuild.result = "FAILED"
     throw e
   } finally {
-    buildNotify currentBuild.result, 'my-build-channel'
   }
 }
