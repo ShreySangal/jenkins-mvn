@@ -7,9 +7,6 @@ node {
       // checkout repository
       checkout scm
 
-      // save our docker build context before we switch branches
-      sh "cp -r ./.docker/build tmp-docker-build-context"
-    
       // checkout input branch 
       sh "git checkout https://github.com/s-hcl/jenkins-mvn.git"
     }
