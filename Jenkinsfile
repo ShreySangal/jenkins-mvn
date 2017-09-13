@@ -1,30 +1,3 @@
-def greenColor = "#3BCF00"
-def yellowColor = "#BFC14C"
-def redColor = "#DE0000"
-
-def buildNotify(buildStatus, channel) {
-    // build status of null means successful
-    buildStatus =  buildStatus ?: 'SUCCESSFUL'
-
-    // Default values
-    def colorCode = '#FF0000'
-    def subject = "`[PROJECT]` ${buildStatus}: build branch `${env.BRANCH_NAME}`"
-    def summary = "${subject} (<${env.BUILD_URL}|Open>)"
-
-    // Override default values based on build status
-    if (buildStatus == 'STARTED') {
-      colorCode = yellowColor
-    } else if (buildStatus == 'SUCCESSFUL') {
-      colorCode = greenColor
-    } else {
-      colorCode = redColor
-    }   
-
-    // Send notifications
-    // NOTE: you should get the token from Jenkins credentials instead of cleartext in script
-    slackSend color: colorCode, message: summary, teamDomain: 'myDomain', channel: channel,token: 'myToken'
-  }
-
 node {
   def branchVersion = ""
 
