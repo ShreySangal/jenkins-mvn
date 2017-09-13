@@ -3,6 +3,8 @@ node {
 
   try {
     
+withDockerContainer('jenkins-slave-image3') {
+
     stage ('Checkout') {
       // checkout repository
       checkout scm
@@ -10,7 +12,6 @@ node {
     }
 
     stage ('Determine Branch Version') {
-
       // determine version in pom.xml
       def pomVersion = sh(script: 'mvn -q -Dexec.executable=\'echo\' -Dexec.args=\'${project.version}\' --non-recursive exec:exec', returnStdout: true).trim()
 
@@ -23,12 +24,14 @@ node {
 
       // set branch SNAPSHOT version in pom.xml
       sh "mvn versions:set -DnewVersion=${branchVersion}"
-    }
+    	}
 
     stage ('Java Build') {
       // build .war package
       sh 'mvn clean package -U'
     }
+
+}
   
     stage ('Docker Build') {
       // prepare docker build context
