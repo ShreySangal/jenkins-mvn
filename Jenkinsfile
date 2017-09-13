@@ -7,8 +7,6 @@ node {
       // checkout repository
       checkout scm
 
-      // checkout input branch 
-      sh "git checkout https://github.com/s-hcl/jenkins-mvn.git"
     }
 
     stage ('Determine Branch Version') {
