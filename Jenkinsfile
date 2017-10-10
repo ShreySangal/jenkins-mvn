@@ -1,54 +1,29 @@
-node {
-  def branchVersion = ""
+node ('docker-slave'){
 
-  try {
+    stage('SCM') {
+    checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[url: 'https://github.com/shreys-s/game-of-life.git']]])
+    }
     
-withDockerContainer('jenkins-slave-image3') {
-
-    stage ('Checkout') {
-      // checkout repository
-      checkout scm
-
+    stage('Build') {
+                sh 'mvn clean package'
     }
-
-    stage ('Determine Branch Version') {
-      // determine version in pom.xml
-      def pomVersion = sh(script: 'mvn -q -Dexec.executable=\'echo\' -Dexec.args=\'${project.version}\' --non-recursive exec:exec', returnStdout: true).trim()
-
-      // compute proper branch SNAPSHOT version
-      pomVersion = pomVersion.replaceAll(/-SNAPSHOT/, "") 
-      branchVersion = env.BRANCH_NAME
-      branchVersion = branchVersion.replaceAll(/origin\//, "") 
-      branchVersion = branchVersion.replaceAll(/\W/, "-")
-      branchVersion = "${pomVersion}-${branchVersion}-SNAPSHOT"
-
-      // set branch SNAPSHOT version in pom.xml
-      sh "mvn versions:set -DnewVersion=${branchVersion}"
-    	}
-
-    stage ('Java Build') {
-      // build .war package
-      sh 'mvn clean package -U'
+    stage('Junit')
+    {
+        junit '**/target/surefire-reports/*.xml'
     }
-
-}
-  
-    stage ('Docker Build') {
-      // prepare docker build context
-      sh "cp target/project.war ./tmp-docker-build-context"
-
-      // Build and push image with Jenkins' docker-plugin
-      withDockerServer([uri: "tcp://<my-docker-socket>"]) {
-        withDockerRegistry([credentialsId: 'docker-registry-credentials', url: "https://<my-docker-registry>/"]) {
-          // we give the image the same version as the .war package
-          def image = docker.build("<myDockerRegistry>/<myDockerProjectRepo>:${branchVersion}", "--build-arg PACKAGE_VERSION=${branchVersion} ./tmp-docker-build-context")
-          image.push()
-        }   
-      }
-    } 
-  } catch(e) {
-    currentBuild.result = "FAILED"
-    throw e
-  } finally {
+    stage('SonarQube analysis') {
+        withSonarQubeEnv('sonarqube') {
+            sh 'mvn org.sonarsource.scanner.maven:sonar-maven-plugin:3.2:sonar'
+        }
   }
+  stage('Artifacts')
+  {
+    archiveArtifacts '**/target/*.*ar'
+  }
+  stage('Publish') {
+    nexusArtifactUploader artifacts: [[artifactId: 'gameoflife', classifier: '', file: 'gameoflife-web/target/gameoflife.war', type: 'war']], credentialsId: 'nexus', groupId: '', nexusUrl: '172.17.0.3:8081/nexus', nexusVersion: 'nexus2', protocol: 'http', repository: 'dryice', version: '1.0'
+   }
+   stage('Deployment'){
+    build job: 'deployment', parameters: [string(name: 'artifact', value: 'gameoflife')]
+   }
 }
